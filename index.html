@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHROMATCH</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #222222;
+    --text: #e8e8e8;
+    --muted: #555;
+    --accent: #f0f0f0;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── START SCREEN ── */
+  #start-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+    z-index: 200;
+    transition: opacity 0.5s ease;
+  }
+  #start-screen.hidden { opacity: 0; pointer-events: none; }
+
+  .start-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 22vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: 0.08em;
+    text-align: center;
+  }
+
+  .start-sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .start-rules {
+    display: flex; flex-direction: column;
+    gap: 10px;
+    margin: 8px 0;
+  }
+
+  .rule {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: #888;
+    text-align: center;
+  }
+
+  #start-btn {
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 16px 48px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    margin-top: 8px;
+  }
+  #start-btn:hover { opacity: 0.85; }
+  #start-btn:active { transform: scale(0.97); }
+
+  /* ── FLASH SCREEN ── */
+  #flash-screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    transition: opacity 0.6s ease;
+  }
+  #flash-screen.hidden { opacity: 0; pointer-events: none; }
+
+  #flash-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 10vw, 7rem);
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.15);
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: center;
+    mix-blend-mode: overlay;
+  }
+
+  #countdown-ring {
+    position: absolute;
+    bottom: 48px;
+    width: 72px; height: 72px;
+  }
+  #countdown-ring svg { transform: rotate(-90deg); }
+  #countdown-ring circle {
+    fill: none;
+    stroke: rgba(255,255,255,0.25);
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+  #countdown-num {
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* ── GAME SCREEN ── */
+  #game-screen {
+    width: min(520px, 96vw);
+    display: flex; flex-direction: column;
+    gap: 20px;
+    transition: opacity 0.4s ease;
+  }
+  #game-screen.hidden { opacity: 0; pointer-events: none; }
+
+  .game-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .game-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.12em;
+    color: var(--text);
+  }
+
+  .round-badge {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* Swatches */
+  .swatch-row {
+    height: 110px;
+  }
+
+  .swatch {
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
+
+  .swatch-label {
+    position: absolute;
+    bottom: 8px; left: 10px;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+  }
+
+  /* Sliders */
+  .sliders {
+    display: flex; flex-direction: column;
+    gap: 14px;
+  }
+
+  .slider-row {
+    display: flex; flex-direction: column;
+    gap: 6px;
+  }
+
+  .slider-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .slider-name {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .slider-val {
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  .slider-track {
+    height: 28px;
+    border-radius: 6px;
+    position: relative;
+    overflow: visible;
+    cursor: pointer;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 100%;
+    background: transparent;
+    position: absolute; inset: 0;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 36px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    cursor: grab;
+    border: none;
+  }
+  input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
+  input[type=range]::-webkit-slider-runnable-track { background: transparent; }
+
+  /* Submit */
+  #submit-btn {
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 14px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    width: 100%;
+  }
+  #submit-btn:hover { opacity: 0.85; }
+  #submit-btn:active { transform: scale(0.98); }
+
+  /* ── RESULT FLASH ── */
+  #result-flash {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px;
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #result-flash.show { opacity: 1; pointer-events: all; }
+
+  .result-colors {
+    display: flex;
+    gap: 4px;
+    width: min(80vw, 320px);
+    height: min(45vw, 180px);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  }
+
+  .result-half {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 10px;
+  }
+
+  .rf-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .result-word {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 12vw, 6rem);
+    letter-spacing: 0.08em;
+    color: #fff;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  }
+
+  .result-score {
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* ── END SCREEN ── */
+  #end-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 28px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s;
+    overflow-y: auto;
+    padding: 40px 20px;
+  }
+  #end-screen.show { opacity: 1; pointer-events: all; }
+
+  .end-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    letter-spacing: 0.15em;
+  }
+
+  .final-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 15vw, 9rem);
+    line-height: 1;
+    letter-spacing: 0.05em;
+  }
+
+  .final-verdict {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .rounds-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 540px;
+  }
+
+  .round-card {
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .round-pair {
+    display: flex;
+    gap: 3px;
+    width: 100px; height: 75px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+  .round-half {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 4px;
+  }
+
+  .round-half-label {
+    font-size: 0.45rem;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.45);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .round-score-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  #play-again {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 12px 36px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  #play-again:hover { border-color: var(--text); }
+
+  /* Hue gradient */
+  .hue-track {
+    background: linear-gradient(to right,
+      hsl(0,100%,50%), hsl(30,100%,50%), hsl(60,100%,50%),
+      hsl(90,100%,50%), hsl(120,100%,50%), hsl(150,100%,50%),
+      hsl(180,100%,50%), hsl(210,100%,50%), hsl(240,100%,50%),
+      hsl(270,100%,50%), hsl(300,100%,50%), hsl(330,100%,50%),
+      hsl(360,100%,50%));
+  }
+
+  .divider { width: 100%; height: 1px; background: var(--border); }
+</style>
+</head>
+<body>
+
+<!-- START SCREEN -->
+<div id="start-screen">
+  <div class="start-title">CHRO<br>MATCH</div>
+  <div class="start-sub">Can you remember a colour?</div>
+  <div class="start-rules">
+    <div class="rule">👁 A colour flashes for 5 seconds</div>
+    <div class="rule">🎚 Mix it with 3 sliders</div>
+    <div class="rule">🎯 5 rounds · scored by eye</div>
+  </div>
+  <button id="start-btn">START GAME</button>
+</div>
+
+<!-- FLASH SCREEN -->
+<div id="flash-screen">
+  <div id="flash-label">MEMORISE</div>
+  <div id="countdown-ring">
+    <svg viewBox="0 0 72 72" width="72" height="72">
+      <circle id="ring-circle" cx="36" cy="36" r="30"/>
+    </svg>
+    <div id="countdown-num">5</div>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen" class="hidden">
+  <div class="game-header">
+    <div class="game-title">CHROMATCH</div>
+    <div class="round-badge" id="round-label">ROUND 1 / 5</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="swatch-row">
+    <div class="swatch" id="mix-swatch">
+      <div class="swatch-label">Your Mix</div>
+    </div>
+  </div>
+
+  <div class="sliders">
+    <!-- HUE -->
+    <div class="slider-row">
+      <div class="slider-meta">
+        <span class="slider-name">Hue</span>
+        <span class="slider-val" id="hue-val">180°</span>
+      </div>
+      <div class="slider-track hue-track">
+        <input type="range" id="hue-slider" min="0" max="360" value="180">
+      </div>
+    </div>
+    <!-- SATURATION -->
+    <div class="slider-row">
+      <div class="slider-meta">
+        <span class="slider-name">Saturation</span>
+        <span class="slider-val" id="sat-val">50%</span>
+      </div>
+      <div class="slider-track" id="sat-track">
+        <input type="range" id="sat-slider" min="0" max="100" value="50">
+      </div>
+    </div>
+    <!-- BRIGHTNESS -->
+    <div class="slider-row">
+      <div class="slider-meta">
+        <span class="slider-name">Brightness</span>
+        <span class="slider-val" id="bri-val">50%</span>
+      </div>
+      <div class="slider-track" id="bri-track">
+        <input type="range" id="bri-slider" min="0" max="100" value="50">
+      </div>
+    </div>
+  </div>
+
+  <button id="submit-btn">LOCK IT IN</button>
+</div>
+
+<!-- RESULT FLASH -->
+<div id="result-flash">
+  <div class="result-colors">
+    <div class="result-half" id="rf-target"><span class="rf-label">TARGET</span></div>
+    <div class="result-half" id="rf-mix"></div>
+  </div>
+  <div class="result-word" id="result-word">CLOSE</div>
+  <div class="result-score" id="result-score-lbl">7 / 10</div>
+</div>
+
+<!-- END SCREEN -->
+<div id="end-screen">
+  <div class="end-title">FINAL RESULTS</div>
+  <div class="final-score" id="final-score-display">38/50</div>
+  <div class="final-verdict" id="final-verdict-text">DECENT EYE</div>
+  <div class="rounds-grid" id="rounds-grid"></div>
+  <button id="play-again">PLAY AGAIN</button>
+</div>
+
+<script>
+// ── COLOR UTILS ──────────────────────────────────────────────────────────────
+
+function hsbToRgb(h, s, b) {
+  s /= 100; b /= 100;
+  const k = n => (n + h / 60) % 6;
+  const f = n => b * (1 - s * Math.max(0, Math.min(k(n), 4 - k(n), 1)));
+  return [Math.round(f(5)*255), Math.round(f(3)*255), Math.round(f(1)*255)];
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let hue;
+  switch (max) {
+    case r: hue = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+    case g: hue = ((b - r) / d + 2) / 6; break;
+    default: hue = ((r - g) / d + 4) / 6;
+  }
+  return [hue * 360, s, l];
+}
+
+function rgbToCielab(r, g, b) {
+  // sRGB to linear
+  const lin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const rl = lin(r), gl = lin(g), bl = lin(b);
+  // to XYZ (D65)
+  const X = (rl*0.4124564 + gl*0.3575761 + bl*0.1804375) / 0.95047;
+  const Y = (rl*0.2126729 + gl*0.7151522 + bl*0.0721750) / 1.00000;
+  const Z = (rl*0.0193339 + gl*0.1191920 + bl*0.9503041) / 1.08883;
+  const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16/116;
+  const fx = f(X), fy = f(Y), fz = f(Z);
+  return [116*fy - 16, 500*(fx - fy), 200*(fy - fz)];
+}
+
+// Delta-E 2000 (simplified but accurate enough)
+function deltaE2000(lab1, lab2) {
+  const [L1, a1, b1] = lab1;
+  const [L2, a2, b2] = lab2;
+  const kL = 1, kC = 1, kH = 1;
+  const C1 = Math.sqrt(a1*a1 + b1*b1);
+  const C2 = Math.sqrt(a2*a2 + b2*b2);
+  const Cb = (C1 + C2) / 2;
+  const Cb7 = Math.pow(Cb, 7);
+  const G = 0.5 * (1 - Math.sqrt(Cb7 / (Cb7 + 6103515625)));
+  const a1p = a1 * (1 + G), a2p = a2 * (1 + G);
+  const C1p = Math.sqrt(a1p*a1p + b1*b1);
+  const C2p = Math.sqrt(a2p*a2p + b2*b2);
+  const h1p = Math.atan2(b1, a1p) * 180/Math.PI + (Math.atan2(b1, a1p) < 0 ? 360 : 0);
+  const h2p = Math.atan2(b2, a2p) * 180/Math.PI + (Math.atan2(b2, a2p) < 0 ? 360 : 0);
+  const dLp = L2 - L1;
+  const dCp = C2p - C1p;
+  let dhp;
+  if (C1p * C2p === 0) dhp = 0;
+  else if (Math.abs(h2p - h1p) <= 180) dhp = h2p - h1p;
+  else if (h2p - h1p > 180) dhp = h2p - h1p - 360;
+  else dhp = h2p - h1p + 360;
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp * Math.PI/360);
+  const Lbp = (L1 + L2) / 2;
+  const Cbp = (C1p + C2p) / 2;
+  let hbp;
+  if (C1p * C2p === 0) hbp = h1p + h2p;
+  else if (Math.abs(h1p - h2p) <= 180) hbp = (h1p + h2p) / 2;
+  else if (h1p + h2p < 360) hbp = (h1p + h2p + 360) / 2;
+  else hbp = (h1p + h2p - 360) / 2;
+  const T = 1
+    - 0.17 * Math.cos((hbp - 30) * Math.PI/180)
+    + 0.24 * Math.cos(2 * hbp * Math.PI/180)
+    + 0.32 * Math.cos((3 * hbp + 6) * Math.PI/180)
+    - 0.20 * Math.cos((4 * hbp - 63) * Math.PI/180);
+  const SL = 1 + 0.015 * Math.pow(Lbp - 50, 2) / Math.sqrt(20 + Math.pow(Lbp - 50, 2));
+  const SC = 1 + 0.045 * Cbp;
+  const SH = 1 + 0.015 * Cbp * T;
+  const Cbp7 = Math.pow(Cbp, 7);
+  const RC = 2 * Math.sqrt(Cbp7 / (Cbp7 + 6103515625));
+  const dt = 30 * Math.exp(-Math.pow((hbp - 275) / 25, 2));
+  const RT = -Math.sin(2 * dt * Math.PI/180) * RC;
+  return Math.sqrt(
+    Math.pow(dLp / (kL*SL), 2) +
+    Math.pow(dCp / (kC*SC), 2) +
+    Math.pow(dHp / (kH*SH), 2) +
+    RT * (dCp / (kC*SC)) * (dHp / (kH*SH))
+  );
+}
+
+function perceptualScore(rgb1, rgb2) {
+  const lab1 = rgbToCielab(...rgb1);
+  const lab2 = rgbToCielab(...rgb2);
+  const dE = deltaE2000(lab1, lab2);
+  // dE: 0=identical, ~50=opposite. Map to 0–10
+  const score = Math.max(0, 10 - (dE / 5));
+  return Math.round(score * 10) / 10;
+}
+
+function scoreWord(s) {
+  if (s >= 9.5) return 'UNCANNY';
+  if (s >= 8.5) return 'SHARP';
+  if (s >= 7.0) return 'CLOSE';
+  if (s >= 5.5) return 'WARM';
+  if (s >= 4.0) return 'MISS';
+  if (s >= 2.5) return 'LOST';
+  return 'BLIND';
+}
+
+function finalVerdict(total, max) {
+  const pct = total / max;
+  if (pct >= 0.94) return 'INHUMAN PRECISION';
+  if (pct >= 0.80) return 'SHARP EYE';
+  if (pct >= 0.65) return 'DECENT EYE';
+  if (pct >= 0.50) return 'GETTING THERE';
+  if (pct >= 0.35) return 'NEEDS PRACTICE';
+  return 'COLOUR BLIND?';
+}
+
+function rgbStr(rgb) { return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; }
+
+let usedHues = [];
+
+function randomHsb() {
+  let h, attempts = 0;
+  do {
+    h = Math.floor(Math.random() * 360);
+    attempts++;
+  } while (attempts < 20 && usedHues.some(u => {
+    const diff = Math.abs(h - u);
+    return Math.min(diff, 360 - diff) < 60;
+  }));
+  usedHues.push(h);
+  const s = 45 + Math.floor(Math.random() * 50);
+  const b = 38 + Math.floor(Math.random() * 50);
+  return { h, s, b };
+}
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+
+let round = 0;
+let rounds = [];
+let targetHsb, targetRgb;
+let countdownInterval;
+const TOTAL_ROUNDS = 5;
+
+// ── DOM ──────────────────────────────────────────────────────────────────────
+
+const flashScreen   = document.getElementById('flash-screen');
+const gameScreen    = document.getElementById('game-screen');
+const resultFlash   = document.getElementById('result-flash');
+const endScreen     = document.getElementById('end-screen');
+const flashLabel    = document.getElementById('flash-label');
+const countdownNum  = document.getElementById('countdown-num');
+const ringCircle    = document.getElementById('ring-circle');
+function setRingOffset(val) {
+  if (ringCircle) ringCircle.setAttribute('stroke-dashoffset', val);
+}
+
+const roundLabel    = document.getElementById('round-label');
+const mixSwatch     = document.getElementById('mix-swatch');
+
+const hueSlider     = document.getElementById('hue-slider');
+const satSlider     = document.getElementById('sat-slider');
+const briSlider     = document.getElementById('bri-slider');
+const hueVal        = document.getElementById('hue-val');
+const satVal        = document.getElementById('sat-val');
+const briVal        = document.getElementById('bri-val');
+const satTrack      = document.getElementById('sat-track');
+const briTrack      = document.getElementById('bri-track');
+
+const submitBtn     = document.getElementById('submit-btn');
+const rfTarget      = document.getElementById('rf-target');
+const rfMix         = document.getElementById('rf-mix');
+const resultWord    = document.getElementById('result-word');
+const resultScoreLbl= document.getElementById('result-score-lbl');
+
+const finalScoreDisplay = document.getElementById('final-score-display');
+const finalVerdictText  = document.getElementById('final-verdict-text');
+const roundsGrid        = document.getElementById('rounds-grid');
+const playAgain         = document.getElementById('play-again');
+
+// ── SLIDER UPDATE ────────────────────────────────────────────────────────────
+
+function getMixHsb() {
+  return {
+    h: +hueSlider.value,
+    s: +satSlider.value,
+    b: +briSlider.value
+  };
+}
+
+function updateMixSwatch() {
+  const { h, s, b } = getMixHsb();
+  const rgb = hsbToRgb(h, s, b);
+  mixSwatch.style.background = rgbStr(rgb);
+  hueVal.textContent = `${h}°`;
+  satVal.textContent = `${s}%`;
+  briVal.textContent = `${b}%`;
+
+  // Update saturation track gradient
+  const hue = h;
+  satTrack.style.background = `linear-gradient(to right, hsl(${hue},0%,${b/2+25}%), hsl(${hue},100%,${b/2}%))`;
+
+  // Update brightness track gradient
+  briTrack.style.background = `linear-gradient(to right, #000, hsl(${hue},${s}%,50%))`;
+}
+
+[hueSlider, satSlider, briSlider].forEach(s => s.addEventListener('input', updateMixSwatch));
+
+// ── FLOW ─────────────────────────────────────────────────────────────────────
+
+function startRound() {
+  // Reset sliders
+  hueSlider.value = 180;
+  satSlider.value = 50;
+  briSlider.value = 50;
+  updateMixSwatch();
+
+  targetHsb = randomHsb();
+  targetRgb = hsbToRgb(targetHsb.h, targetHsb.s, targetHsb.b);
+
+  roundLabel.textContent = `ROUND ${round + 1} / ${TOTAL_ROUNDS}`;
+
+  // Show flash screen
+  flashScreen.style.background = rgbStr(targetRgb);
+  flashScreen.classList.remove('hidden');
+  flashLabel.style.display = 'block';
+  gameScreen.classList.add('hidden');
+
+  // Countdown
+  let secs = 5;
+  countdownNum.textContent = secs;
+  ringCircle.setAttribute('stroke-dasharray', '188');
+  setRingOffset(0);
+
+  countdownInterval = setInterval(() => {
+    secs--;
+    countdownNum.textContent = secs;
+    const pct = (5 - secs) / 5;
+    setRingOffset(pct * 188);
+    if (secs <= 0) {
+      clearInterval(countdownInterval);
+      endFlash();
+    }
+  }, 1000);
+}
+
+function endFlash() {
+  flashScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+}
+
+function submitRound() {
+  const { h, s, b } = getMixHsb();
+  const mixRgb = hsbToRgb(h, s, b);
+  const score = perceptualScore(targetRgb, mixRgb);
+  const word = scoreWord(score);
+
+  rounds.push({ targetRgb, mixRgb, score });
+
+  // Show result flash overlay
+  rfTarget.style.background = rgbStr(targetRgb);
+  rfMix.style.background = rgbStr(mixRgb);
+  resultWord.textContent = word;
+  resultScoreLbl.textContent = `${score.toFixed(1)} / 10`;
+
+  // result background blend
+  resultFlash.style.background = rgbStr(mixRgb.map((v, i) => Math.round((v + targetRgb[i]) / 2)));
+  resultFlash.classList.add('show');
+
+  setTimeout(() => {
+    resultFlash.classList.remove('show');
+    round++;
+    if (round < TOTAL_ROUNDS) {
+      startRound();
+    } else {
+      showEndScreen();
+    }
+  }, 2200);
+}
+
+function showEndScreen() {
+  const total = rounds.reduce((a, r) => a + r.score, 0);
+  const maxScore = TOTAL_ROUNDS * 10;
+
+  finalScoreDisplay.textContent = `${total.toFixed(0)}/${maxScore}`;
+  finalVerdictText.textContent = finalVerdict(total, maxScore);
+
+  roundsGrid.innerHTML = '';
+  rounds.forEach((r, i) => {
+    const card = document.createElement('div');
+    card.className = 'round-card';
+    card.innerHTML = `
+      <div class="round-pair">
+        <div class="round-half" style="background:${rgbStr(r.targetRgb)}"><span class="round-half-label">T</span></div>
+        <div class="round-half" style="background:${rgbStr(r.mixRgb)}"></div>
+      </div>
+      <div class="round-score-label">R${i+1} · ${r.score.toFixed(1)}</div>
+    `;
+    roundsGrid.appendChild(card);
+  });
+
+  endScreen.classList.add('show');
+}
+
+function resetGame() {
+  round = 0;
+  rounds = [];
+  usedHues = [];
+  endScreen.classList.remove('show');
+  startRound();
+}
+
+submitBtn.addEventListener('click', submitRound);
+playAgain.addEventListener('click', resetGame);
+
+// ── BOOT ─────────────────────────────────────────────────────────────────────
+const startScreen = document.getElementById('start-screen');
+const startBtn    = document.getElementById('start-btn');
+
+// Hide flash screen initially until game starts
+flashScreen.classList.add('hidden');
+
+startBtn.addEventListener('click', () => {
+  startScreen.classList.add('hidden');
+  startRound();
+});
+</script>
+</body>
+</html>
